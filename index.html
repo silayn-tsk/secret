@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Secret</title>
+  <title>Swapna, will you be my Valentine?</title>
   <style>
     :root{
       --bg1:#ff6aa2;
@@ -188,7 +188,7 @@
       text-shadow: 0 10px 22px rgba(0,0,0,.35);
       background: rgba(0,0,0,.16);
       transition: opacity .4s ease;
-      pointer-events: none;
+      pointer-events:none; /* IMPORTANT: don't block taps */
     }
     .photoCard.revealed img{
       filter: blur(0px) brightness(1);
@@ -198,6 +198,21 @@
       opacity:0;
       pointer-events:none;
     }
+
+    /* Heartbeat animation on reveal */
+    @keyframes heartBeat {
+      0%   { transform: scale(1); }
+      14%  { transform: scale(1.12); }
+      28%  { transform: scale(1); }
+      42%  { transform: scale(1.10); }
+      70%  { transform: scale(1); }
+      100% { transform: scale(1); }
+    }
+    .photoCard.revealed{
+      animation: heartBeat 900ms ease-in-out;
+      box-shadow: 0 18px 55px rgba(255, 0, 100, .25), 0 14px 40px rgba(0,0,0,.25);
+    }
+
     .caption{
       margin-top:10px;
       font-weight:900;
@@ -234,7 +249,7 @@
 
   <div class="center">
     <div class="card" id="card">
-      <h1>Swapna, Will you be my Valentine? 💘</h1>
+      <h1>Swapna, will you be my Valentine? 💘</h1>
       <p class="sub">Choose wisely… 😄</p>
 
       <div class="buttons" id="btnWrap">
@@ -253,8 +268,8 @@
 
       <div class="photoWrap" id="photoWrap">
         <div class="photoCard" id="photoCard" role="button" tabindex="0" aria-label="Reveal photo">
-          <img id="valPhoto" src="her.jpg" alt="My favorite person 💖" />
-          <div class="revealHint" id="revealHint">Tap to reveal 💖</div>
+          <img id="valPhoto" src="her.jpg" alt="My favorite person, Swapna 💖" />
+          <div class="revealHint">Tap to reveal 💖</div>
         </div>
         <div class="caption">My favorite person, Swapna 💖</div>
       </div>
@@ -358,13 +373,26 @@
     // ---------- WhatsApp prefilled message ----------
     const waLink = document.getElementById('waLink');
     const phoneE164 = "60176383913"; // no plus for wa.me
-    const prefilled = "I said YES! 💞 You are my Valentine 😘";
+    const prefilled = "Hey! 💖 I said YES! You’re my Valentine 😘";
     waLink.href = `https://wa.me/${phoneE164}?text=${encodeURIComponent(prefilled)}`;
 
-    // ---------- Photo reveal ----------
+    // ---------- Photo reveal + heartbeat restart (mobile reliable) ----------
     const photoCard = document.getElementById('photoCard');
-    function revealPhoto(){ photoCard.classList.add('revealed'); }
-    photoCard.addEventListener('click', revealPhoto);
+
+    function revealPhoto(){
+      photoCard.classList.add('revealed');
+
+      // restart heartbeat animation (in case of repeated taps)
+      photoCard.style.animation = 'none';
+      void photoCard.offsetWidth; // reflow
+      photoCard.style.animation = '';
+    }
+
+    photoCard.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      revealPhoto();
+    });
+
     photoCard.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') revealPhoto();
     });
@@ -395,7 +423,6 @@
       yesBtn.disabled = true;
       noBtn.style.display = 'none';
 
-      document.querySelector('h1').textContent = "Yay!! 💞";
       document.querySelector('.sub').textContent = "Now message me or call me 😌";
 
       const cr = card.getBoundingClientRect();
