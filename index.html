@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Error 404?</title>
+  <title>Error 404</title>
   <style>
     :root{
       --bg1:#ff6aa2;
@@ -85,6 +85,8 @@
     }
 
     .center{ position:absolute; inset:0; display:grid; place-items:center; padding:18px; }
+
+    /* Main valentine card */
     .card{
       width:min(720px, 94vw);
       background:var(--card);
@@ -95,6 +97,7 @@
       box-shadow: 0 18px 60px rgba(0,0,0,.18);
       text-align:center;
       position:relative;
+      display:none; /* hidden until access granted */
     }
 
     h1{ margin:0 0 10px; font-size: clamp(28px, 5.2vw, 48px); line-height:1.05; }
@@ -154,10 +157,7 @@
     .call{ background:linear-gradient(180deg, #76a7ff, var(--call)); color:#061b3a }
 
     /* Blur photo reveal */
-    .photoWrap{
-      display:none;
-      margin-top:18px;
-    }
+    .photoWrap{ display:none; margin-top:18px; }
     .photoCard{
       width:100%;
       max-width:320px;
@@ -188,16 +188,13 @@
       text-shadow: 0 10px 22px rgba(0,0,0,.35);
       background: rgba(0,0,0,.16);
       transition: opacity .4s ease;
-      pointer-events:none; /* IMPORTANT: don't block taps */
+      pointer-events:none; /* don’t block taps */
     }
     .photoCard.revealed img{
       filter: blur(0px) brightness(1);
       transform: scale(1);
     }
-    .photoCard.revealed .revealHint{
-      opacity:0;
-      pointer-events:none;
-    }
+    .photoCard.revealed .revealHint{ opacity:0; }
 
     /* Heartbeat animation on reveal */
     @keyframes heartBeat {
@@ -213,11 +210,7 @@
       box-shadow: 0 18px 55px rgba(255, 0, 100, .25), 0 14px 40px rgba(0,0,0,.25);
     }
 
-    .caption{
-      margin-top:10px;
-      font-weight:900;
-      font-size:18px;
-    }
+    .caption{ margin-top:10px; font-weight:900; font-size:18px; }
 
     /* Hearts pop on YES */
     .pop{ position:absolute; inset:0; pointer-events:none; display:none; }
@@ -241,6 +234,64 @@
       button, a.action{min-width:145px; padding:15px 18px}
       .card{padding:20px 14px}
     }
+
+    /* ---------- Access screen ---------- */
+    .gate{
+      width:min(560px, 94vw);
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.65);
+      border-radius:26px;
+      padding:22px 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.18);
+      text-align:center;
+      position:relative;
+    }
+    .gate h2{
+      margin:0 0 8px 0;
+      font-size: clamp(22px, 4.2vw, 32px);
+      line-height:1.1;
+    }
+    .gate p{
+      margin:0 0 16px 0;
+      opacity:.85;
+      font-weight:700;
+    }
+    .field{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    input{
+      width:min(340px, 88vw);
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid rgba(0,0,0,.12);
+      font-size:16px;
+      font-weight:700;
+      outline:none;
+    }
+    input:focus{
+      border-color: rgba(255, 45, 85, .45);
+      box-shadow: 0 0 0 4px rgba(255, 45, 85, .14);
+    }
+    .hint{
+      margin-top:10px;
+      font-size:12px;
+      opacity:.65;
+      font-weight:700;
+    }
+    .error{
+      margin-top:12px;
+      display:none;
+      font-weight:900;
+      color:#b91c1c;
+      background: rgba(255, 255, 255, .7);
+      border: 1px solid rgba(185, 28, 28, .2);
+      padding:10px 12px;
+      border-radius:14px;
+    }
   </style>
 </head>
 <body>
@@ -248,6 +299,21 @@
   <div class="balloons" id="balloons"></div>
 
   <div class="center">
+    <!-- Access Gate -->
+    <div class="gate" id="gate">
+      <h2>Who’s there? 💌</h2>
+      <p>Enter your name to continue</p>
+
+      <div class="field">
+        <input id="nameInput" type="text" placeholder="Type your name…" autocomplete="name" />
+        <button id="enterBtn">Enter 💖</button>
+      </div>
+
+      <div class="error" id="gateError">Access denied 🙈 Try again.</div>
+      <div class="hint">Tip: use your full name if needed ✨</div>
+    </div>
+
+    <!-- Main Page -->
     <div class="card" id="card">
       <h1>Swapna, will you be my Valentine? 💘</h1>
       <p class="sub">Choose wisely… 😄</p>
@@ -280,6 +346,56 @@
   </div>
 
   <script>
+    // ---------- Name gate ----------
+    const gate = document.getElementById('gate');
+    const card = document.getElementById('card');
+    const nameInput = document.getElementById('nameInput');
+    const enterBtn = document.getElementById('enterBtn');
+    const gateError = document.getElementById('gateError');
+
+    // Allowed names (case-insensitive). We'll normalize spaces too.
+    const allowed = new Set([
+      "swapna",
+      "swapna rao"
+    ]);
+
+    function normalizeName(s){
+      return (s || "")
+        .trim()
+        .replace(/\s+/g, " ")    // collapse multiple spaces
+        .toLowerCase();
+    }
+
+    function grantAccess(){
+      gate.style.display = 'none';
+      card.style.display = 'block';
+    }
+
+    function tryEnter(){
+      const typed = normalizeName(nameInput.value);
+      if (allowed.has(typed)) {
+        gateError.style.display = 'none';
+        grantAccess();
+      } else {
+        gateError.style.display = 'block';
+        // small shake feel (no extra CSS needed)
+        gate.animate(
+          [{transform:'translateX(0)'},{transform:'translateX(-8px)'},{transform:'translateX(8px)'},{transform:'translateX(0)'}],
+          {duration:240}
+        );
+        nameInput.focus();
+        nameInput.select();
+      }
+    }
+
+    enterBtn.addEventListener('click', tryEnter);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryEnter();
+    });
+
+    // Optional: auto-focus on load
+    setTimeout(() => nameInput.focus(), 150);
+
     // ---------- Heart balloons ----------
     const balloonsEl = document.getElementById('balloons');
     const colors = ["#ff2d55","#ff4d6d","#ff6aa2","#ff2d9a","#ff3b30","#ff5ea8"];
@@ -309,8 +425,7 @@
     for (let i = 0; i < 16; i++) makeBalloon();
     setInterval(makeBalloon, 650);
 
-    // ---------- No button dodging (mobile-friendly) ----------
-    const card = document.getElementById('card');
+    // ---------- No button dodging ----------
     const btnWrap = document.getElementById('btnWrap');
     const noBtn = document.getElementById('noBtn');
     const yesBtn = document.getElementById('yesBtn');
@@ -359,6 +474,7 @@
     });
 
     card.addEventListener('pointermove', (e) => {
+      if (card.style.display !== 'block') return;
       const r = noBtn.getBoundingClientRect();
       const cx = r.left + r.width/2;
       const cy = r.top + r.height/2;
@@ -373,26 +489,21 @@
     // ---------- WhatsApp prefilled message ----------
     const waLink = document.getElementById('waLink');
     const phoneE164 = "60176383913"; // no plus for wa.me
-    const prefilled = "Hey! 💖 I said YES! You’re my Valentine 😘";
+    const prefilled = "Hey Swapna 💖 I said YES! You’re my Valentine 😘";
     waLink.href = `https://wa.me/${phoneE164}?text=${encodeURIComponent(prefilled)}`;
 
-    // ---------- Photo reveal + heartbeat restart (mobile reliable) ----------
+    // ---------- Photo reveal + heartbeat restart ----------
     const photoCard = document.getElementById('photoCard');
-
     function revealPhoto(){
       photoCard.classList.add('revealed');
-
-      // restart heartbeat animation (in case of repeated taps)
       photoCard.style.animation = 'none';
-      void photoCard.offsetWidth; // reflow
+      void photoCard.offsetWidth;
       photoCard.style.animation = '';
     }
-
     photoCard.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       revealPhoto();
     });
-
     photoCard.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') revealPhoto();
     });
